@@ -8,6 +8,7 @@ import range from 'ramda/src/range';
 import filter from 'ramda/src/filter';
 import uniq from 'ramda/src/uniq';
 import equals from 'ramda/src/equals';
+import pluck from 'ramda/src/pluck';
 
 
 export function cartesian(cartConcat) {
@@ -53,22 +54,15 @@ export function setsCompositions(specs, sets) {
 }
 
 export function combineLists(lists, specs, valuesMerge) {
-    let result;
+    let result = [];
     let cartesianValuesMerge = cartesian(valuesMerge);
+    let compositions = setsCompositions(specs, pluck('sets', lists));
 
-    result = reduce((r, itemSpec) => {
-        r = reduce((specR, itemList) => {
-
-            if (itemList.sets.indexOf(itemSpec) !== -1) {
-                specR = r.length > 0 ? cartesianValuesMerge(r, itemList.values) : itemList.values;
-            }
-
-            return specR;
-        }, [], lists);
-
-        return r;
-    }, [], specs);
-
+    for (let i = 0; i < compositions.length; i++) {
+        let c = compositions[i];
+        let compositionLists = c.map(listIndex => lists[listIndex].values);
+        result = concat(result, cartesianValuesMerge(...compositionLists));
+    }
 
     return result;
 }
