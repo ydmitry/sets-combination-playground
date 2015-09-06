@@ -1,0 +1,28 @@
+{
+  "name": "sets-combination-playground",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test-watch": "mocha --compilers js:mocha-babel --watch specs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ydmitry/sets-combination-playground.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ydmitry/sets-combination-playground/issues"
+  },
+  "homepage": "https://github.com/ydmitry/sets-combination-playground#readme",
+  "devDependencies": {
+    "babel-runtime": "^5.8.20",
+    "mocha": "^2.3.0",
+    "mocha-babel": "^3.0.0"
+  },
+  "dependencies": {
+    "babel": "^5.8.23",
+    "ramda": "^0.17.1"
+  }
+}
