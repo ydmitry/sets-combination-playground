@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test-watch": "mocha --compilers js:mocha-babel --watch specs"
+    "test": "mocha --reporter=nyan --compilers js:mocha-babel specs",
+    "test-watch": "mocha --reporter=nyan --compilers js:mocha-babel --watch specs"
   },
   "repository": {
     "type": "git",
