@@ -12,13 +12,23 @@ import pluck from 'ramda/src/pluck';
 
 
 export function cartesian(cartConcat) {
-    return (a, b) => {
-        let result = [];
-        for (let i = 0; i < a.length; i++) {
-            for (let j = 0; j < b.length; j++) {
-                result.push(cartConcat(a[i], b[j]));
+    return function() {
+        let lists = arguments;
+        let result;
+
+        result = reduce((a, b) => {
+            let result = [];
+
+            if (a.length == 0) return b;
+
+            for (let i = 0; i < a.length; i++) {
+                for (let j = 0; j < b.length; j++) {
+                    result.push(cartConcat(a[i], b[j]));
+                }
             }
-        }
+            return result;
+        }, [], lists);
+
         return result;
     };
 }
