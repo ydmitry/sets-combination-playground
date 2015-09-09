@@ -1,13 +1,19 @@
 import assert from "assert";
-
+import reduce from "ramda/src/reduce";
 import merge from 'ramda/src/merge';
 import take from 'ramda/src/take';
 import sum from 'ramda/src/sum';
-import {cartesian, combineLists, setsCompositions, lazyCartesianSorted} from "../functions";
+import {cartesian, combineLists, setsCompositions, lazyCartesianSorted, combineListsScoreSorted} from "../functions";
 
-const add = function(a, b) {
+function add(a, b) {
     return a + b;
-};
+}
+
+function mergingSumPrice(a, b) {
+    return merge(a, merge(b, {
+        price: a.price + b.price
+    }));
+}
 
 describe('setsCompositions(sets, specs)', () => {
     it('should return correct array of indexes lists', () => {
@@ -32,7 +38,7 @@ describe('cartesian(...)', () => {
     });
 });
 
-describe('lazyCartesianSorted(cartConcat, score)', () => {
+describe('lazyCartesianSorted(add, sum) ', () => {
     let lazyCartesianSortedAddSum = lazyCartesianSorted(add, sum);
 
     it('returns function', () => {
@@ -57,6 +63,51 @@ describe('lazyCartesianSorted(cartConcat, score)', () => {
         assert.equal(31, cartGen.next().value);
         assert.equal(32, cartGen.next().value);
         assert.equal(true, cartGen.next().done);
+    });
+
+    it('generates first 23, 25, 25, 27  by [10, 12] x [13, 15]', () => {
+        let cartGen = lazyCartesianSortedAddSum([10, 12], [13, 15]);
+        assert.equal(23, cartGen.next().value);
+        assert.equal(25, cartGen.next().value);
+        assert.equal(25, cartGen.next().value);
+        assert.equal(27, cartGen.next().value);
+        assert.equal(true, cartGen.next().done);
+    });
+});
+
+describe('lazyCartesianSorted(add, mergingSumPrice) ', () => {
+    const priceSum = function(elements) {
+        return reduce((a, b) => {
+            return a.price + b.price;
+        }, 0, elements)
+    };
+    let lazyCartesianSortedAddMerge = lazyCartesianSorted(mergingSumPrice, priceSum);
+
+    it('generates object with sum price', () => {
+        let cartGen = lazyCartesianSortedAddMerge([{
+            price: 10,
+            flight: 1
+        }, {
+            price: 12,
+            flight: 2
+        }], [{
+            price: 13,
+            hotel: 1
+        }, {
+            price: 15,
+            hotel: 2
+        }]);
+
+        assert.deepEqual({
+            price: 23,
+            flight: 1,
+            hotel: 1
+        }, cartGen.next().value);
+
+        assert.deepEqual(25, cartGen.next().value.price);
+        assert.deepEqual(25, cartGen.next().value.price);
+        assert.deepEqual(27, cartGen.next().value.price);
+        assert.deepEqual(true, cartGen.next().done);
     });
 });
 
@@ -108,12 +159,6 @@ describe('combineLists(lists, spec)', function() {
     });
 
     it('should make combinations from lists with objects merge and price sum', function () {
-
-        function mergingSumPrice(a, b) {
-            return merge(a, merge(b, {
-                price: a.price + b.price
-            }));
-        }
 
         assert.deepEqual([{
             price: 20,
@@ -183,6 +228,22 @@ describe('combineLists(lists, spec)', function() {
                 flightFrom: 'FF2'
             }]
         }], ['FT', 'FF'], mergingSumPrice));
+    });
+});
+
+
+describe('combineListsScoreSorted(lists, specs, add, sum)', function() {
+    it('should make combinations from lists with addition', function () {
+        let combinationGenerator = combineListsScoreSorted([{
+            sets: ['FT'],
+            values: [1, 2, 3]
+        }, {
+            sets: ['FF'],
+            values: [10, 20, 30]
+        }], ['FT', 'FF'], add, sum);
+
+        assert.equal(11, combinationGenerator.next().value);
+
     });
 });
 

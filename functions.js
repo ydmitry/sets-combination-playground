@@ -118,7 +118,6 @@ export function setsCompositions(specs, sets) {
 
     result = concat(result, prevResult);
 
-
     result = uniq(map(x => x.sort(), result));
     result = filter(list => {
         let norm = reduce((l, index) => {
@@ -133,6 +132,21 @@ export function setsCompositions(specs, sets) {
 export function combineLists(lists, specs, valuesMerge) {
     let result = [];
     let cartesianValuesMerge = cartesian(valuesMerge);
+    let compositions = setsCompositions(specs, pluck('sets', lists));
+
+    for (let i = 0; i < compositions.length; i++) {
+        let c = compositions[i];
+        let compositionLists = c.map(listIndex => lists[listIndex].values);
+        result = concat(result, cartesianValuesMerge(...compositionLists));
+    }
+
+    return result;
+}
+
+
+export function *combineListsScoreSorted(lists, specs, valuesMerge, sortScore) {
+    let result = [];
+    let cartesianValuesMerge = lazyCartesianSorted(valuesMerge, sortScore);
     let compositions = setsCompositions(specs, pluck('sets', lists));
 
     for (let i = 0; i < compositions.length; i++) {
