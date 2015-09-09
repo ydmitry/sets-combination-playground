@@ -240,9 +240,13 @@ describe('combineListsScoreSorted(lists, specs, add, sum)', function() {
         }, {
             sets: ['FF'],
             values: [10, 20, 30]
-        }], ['FT', 'FF'], add, sum);
+        }], ['FT', 'FF'], add, sum, (a, b) => a - b);
 
         assert.equal(11, combinationGenerator.next().value);
+        assert.equal(12, combinationGenerator.next().value);
+        assert.equal(13, combinationGenerator.next().value);
+        assert.equal(21, combinationGenerator.next().value);
+        assert.equal(22, combinationGenerator.next().value);
 
     });
 });

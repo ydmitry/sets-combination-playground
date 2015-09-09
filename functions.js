@@ -145,15 +145,15 @@ export function combineLists(lists, specs, valuesMerge) {
 }
 
 
-export function *combineListsScoreSorted(lists, specs, valuesMerge, sortScore) {
+export function *combineListsScoreSorted(lists, specs, valuesMerge, sortScore, compare) {
 
-    const minIndexBy = function(score, list) {
+    const minIndexBy = function(compare, list) {
         let min = null;
 
         for (let i in list) {
             let item = list[i];
 
-            if (score(item) < score(list[min]) || min === null) {
+            if (compare(item, list[min]) < 0 || min === null) {
                 min = i;
             }
         }
@@ -184,9 +184,9 @@ export function *combineListsScoreSorted(lists, specs, valuesMerge, sortScore) {
 
         if (currentValues.length == 0) break;
 
-        let mInd = minIndexBy(sortScore, currentValues);
+        let mInd = minIndexBy(compare, currentValues);
 
-        yield vals[mInd];
+        yield propValue(vals[mInd]);
 
         vals[mInd] = generators[mInd].next();
     }
