@@ -1,4 +1,5 @@
 import reduce from 'ramda/src/reduce';
+import curry from 'ramda/src/curry';
 import flatten from 'ramda/src/flatten';
 import map from 'ramda/src/map';
 import intersection from 'ramda/src/intersection';
@@ -9,7 +10,12 @@ import filter from 'ramda/src/filter';
 import uniq from 'ramda/src/uniq';
 import equals from 'ramda/src/equals';
 import pluck from 'ramda/src/pluck';
-
+import repeat from 'ramda/src/repeat';
+import mapObjIndexed from 'ramda/src/mapObjIndexed';
+import values from 'ramda/src/values';
+import head from 'ramda/src/head';
+import tail from 'ramda/src/tail';
+import length from 'ramda/src/length';
 
 export function cartesian(cartConcat) {
     return function() {
@@ -31,6 +37,67 @@ export function cartesian(cartConcat) {
 
         return result;
     };
+}
+
+export function lazyCartesianSorted(cartesianConcat, score) {
+    return function *cartGen(...lists) {
+        let queue = [repeat(0, lists.length)];
+
+        const toValues = function(lists, item) {
+            return values(mapObjIndexed((x, i) => {
+                return lists[i][x];
+            }, item));
+        };
+
+        const scoreQueueItem = function(score, lists, item) {
+            return score(toValues(lists, item));
+        };
+
+        const getMinElementQueueIndex = curry(function getMaxElement(score, lists, queue) {
+            let min = null;
+
+            for (let i in queue) {
+                let item = queue[i];
+                let s = scoreQueueItem(score, lists, item);
+
+                if (s < queue[min] || min === null) {
+                    min = i;
+                }
+            }
+
+            return min;
+        });
+
+        const pushQueueByItem = function(lengths, queue, item) {
+            for (let i = 0; i < item.length && (item[i] == 0 || item[i - 1] == 0); i++) {
+                if (lengths[i] <= item[i] + 1) continue;
+
+                let newItem = [...item];
+
+                newItem[i]++;
+
+                queue.push(newItem);
+            }
+
+            return queue;
+        };
+
+        const lengthLists = map(length, lists);
+
+        while (queue.length > 0) {
+            let minIndex = getMinElementQueueIndex(score, lists, queue);
+            let item = queue[minIndex];
+            let itemValues = toValues(lists, item);
+            let element = reduce(cartesianConcat, head(itemValues), tail(itemValues));
+
+            yield element;
+
+            queue.splice(minIndex, 1);
+
+            queue = pushQueueByItem(lengthLists, queue, item);
+
+        }
+    }
 }
 
 // Returns

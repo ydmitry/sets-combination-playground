@@ -1,8 +1,9 @@
 import assert from "assert";
 
 import merge from 'ramda/src/merge';
-
-import {cartesian, combineLists, setsCompositions} from "../functions";
+import take from 'ramda/src/take';
+import sum from 'ramda/src/sum';
+import {cartesian, combineLists, setsCompositions, lazyCartesianSorted} from "../functions";
 
 const add = function(a, b) {
     return a + b;
@@ -28,6 +29,34 @@ describe('cartesian(...)', () => {
         let cartesianAdd = cartesian(add);
 
         assert.deepEqual([11, 21, 12, 22], cartesianAdd([1, 2], [10, 20]));
+    });
+});
+
+describe('lazyCartesianSorted(cartConcat, score)', () => {
+    let lazyCartesianSortedAddSum = lazyCartesianSorted(add, sum);
+
+    it('returns function', () => {
+        assert.equal('function', typeof lazyCartesianSortedAddSum);
+    });
+
+    it('generates first 1, 2, 2, 3  by [0, 1] x [1, 2]', () => {
+        let cartGen = lazyCartesianSortedAddSum([0, 1], [1, 2]);
+        assert.equal(1, cartGen.next().value);
+        assert.equal(2, cartGen.next().value);
+        assert.equal(2, cartGen.next().value);
+        assert.equal(3, cartGen.next().value);
+        assert.equal(true, cartGen.next().done);
+    });
+
+    it('generates first 11, 12, 21, 22, 31, 32  by [1, 2] x [10, 20, 30]', () => {
+        let cartGen = lazyCartesianSortedAddSum([1, 2], [10, 20, 30]);
+        assert.equal(11, cartGen.next().value);
+        assert.equal(12, cartGen.next().value);
+        assert.equal(21, cartGen.next().value);
+        assert.equal(22, cartGen.next().value);
+        assert.equal(31, cartGen.next().value);
+        assert.equal(32, cartGen.next().value);
+        assert.equal(true, cartGen.next().done);
     });
 });
 
@@ -62,6 +91,19 @@ describe('combineLists(lists, spec)', function() {
             sets: ['FF'],
             values: [10, 20]
         }], ['H', 'FT', 'FF'], add).sort());
+
+        let take10 = take(10);
+
+        assert.deepEqual([ 3, 4, 5, 6, 6, 7, 7, 7, 8, 9 ], take10(combineLists([{
+            sets: ['H'],
+            values: [1, 5, 7]
+        }, {
+            sets: ['FT'],
+            values: [1, 2, 5]
+        }, {
+            sets: ['FF'],
+            values: [1, 3, 4]
+        }], ['H', 'FT', 'FF'], add).sort((a, b) => a - b)));
 
     });
 
