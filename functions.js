@@ -1,5 +1,6 @@
 import reduce from 'ramda/src/reduce';
 import curry from 'ramda/src/curry';
+import prop from 'ramda/src/prop';
 import flatten from 'ramda/src/flatten';
 import map from 'ramda/src/map';
 import intersection from 'ramda/src/intersection';
@@ -53,7 +54,7 @@ export function lazyCartesianSorted(cartesianConcat, score) {
             return score(toValues(lists, item));
         };
 
-        const getMinElementQueueIndex = curry(function getMaxElement(score, lists, queue) {
+        const getMinElementQueueIndex = function getMinElementQueueIndex(score, lists, queue) {
             let min = null;
 
             for (let i in queue) {
@@ -66,7 +67,7 @@ export function lazyCartesianSorted(cartesianConcat, score) {
             }
 
             return min;
-        });
+        };
 
         const pushQueueByItem = function(lengths, queue, item) {
             for (let i = 0; i < item.length && (item[i] == 0 || item[i - 1] == 0); i++) {
@@ -145,14 +146,49 @@ export function combineLists(lists, specs, valuesMerge) {
 
 
 export function *combineListsScoreSorted(lists, specs, valuesMerge, sortScore) {
+
+    const minIndexBy = function(score, list) {
+        let min = null;
+
+        for (let i in list) {
+            let item = list[i];
+
+            if (score(item) < score(list[min]) || min === null) {
+                min = i;
+            }
+        }
+
+        return min;
+    };
+
+    const propValue = prop('value');
+    //const propDone = prop('done');
+
     let result = [];
     let cartesianValuesMerge = lazyCartesianSorted(valuesMerge, sortScore);
     let compositions = setsCompositions(specs, pluck('sets', lists));
+    let generators = []; // repeat(0, compositions.length);
+    let vals = [];
 
     for (let i = 0; i < compositions.length; i++) {
         let c = compositions[i];
         let compositionLists = c.map(listIndex => lists[listIndex].values);
-        result = concat(result, cartesianValuesMerge(...compositionLists));
+        let cartGen = cartesianValuesMerge(...compositionLists);
+
+        generators.push(cartGen);
+        vals.push(cartGen.next());
+    }
+
+    while (1) {
+        let currentValues = filter(x => !x.done, map(propValue, vals));
+
+        if (currentValues.length == 0) break;
+
+        let mInd = minIndexBy(sortScore, currentValues);
+
+        yield vals[mInd];
+
+        vals[mInd] = generators[mInd].next();
     }
 
     return result;
