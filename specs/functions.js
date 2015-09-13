@@ -3,7 +3,10 @@ import reduce from "ramda/src/reduce";
 import merge from 'ramda/src/merge';
 import take from 'ramda/src/take';
 import sum from 'ramda/src/sum';
-import {cartesian, combineLists, setsCompositions, lazyCartesianSorted, combineListsScoreSorted} from "../functions";
+import {
+    cartesian, combineLists, setsCompositions, minIndexBy,
+    lazyCartesianSorted, combineListsScoreSorted, pushQueueByItem
+} from "../functions";
 
 function add(a, b) {
     return a + b;
@@ -14,6 +17,24 @@ function mergingSumPrice(a, b) {
         price: a.price + b.price
     }));
 }
+
+
+/*describe('minIndexBy(compare, list)', () => {
+    it('should work', () => {
+        // @TODO: write tests
+    });
+});*/
+
+describe('pushQueueByItem(lengths, queue, item)', () => {
+    it('should work', () => {
+        assert.deepEqual([[0, 1]], pushQueueByItem([1, 3], [], [0, 0]));
+        assert.deepEqual([[1, 0], [0, 1]], pushQueueByItem([2, 2], [], [0, 0]));
+        assert.deepEqual([[0, 1], [2, 0]], pushQueueByItem([3, 2], [[0, 1]], [1, 0]));
+        assert.deepEqual([[1, 1], [0, 2]], pushQueueByItem([3, 3], [], [0, 1]));
+        assert.deepEqual([[2, 0]], pushQueueByItem([3, 3], [], [1, 0]));
+        assert.deepEqual([[1, 2]], pushQueueByItem([3, 3], [], [0, 2]));
+    });
+});
 
 describe('setsCompositions(sets, specs)', () => {
     it('should return correct array of indexes lists', () => {
@@ -27,6 +48,7 @@ describe('setsCompositions(sets, specs)', () => {
                 ]
             )
         );
+        assert.deepEqual([[3], [0, 2], [1, 2]], setsCompositions(['FT', 'FF'], [['FT'], ['FT'], ['FF'], ['FT', 'FF']]));
     });
 });
 
@@ -43,6 +65,14 @@ describe('lazyCartesianSorted(add, sum) ', () => {
 
     it('returns function', () => {
         assert.equal('function', typeof lazyCartesianSortedAddSum);
+    });
+
+    it('generates first 11, 21, 31  by [1] x [10, 20, 30]', () => {
+        let cartGen = lazyCartesianSortedAddSum([1], [10, 20, 30]);
+        assert.equal(11, cartGen.next().value);
+        assert.equal(21, cartGen.next().value);
+        assert.equal(31, cartGen.next().value);
+        assert.equal(true, cartGen.next().done);
     });
 
     it('generates first 1, 2, 2, 3  by [0, 1] x [1, 2]', () => {
@@ -72,6 +102,22 @@ describe('lazyCartesianSorted(add, sum) ', () => {
         assert.equal(25, cartGen.next().value);
         assert.equal(27, cartGen.next().value);
         assert.equal(true, cartGen.next().done);
+    });
+
+    it('generates first 11, 12, 13, 21, 22, 23, 31, 32, 33  by [1, 2, 3] x [10, 20, 30]', function () {
+        let cartGen = lazyCartesianSortedAddSum([1, 2, 3], [10, 20, 30]);
+
+        assert.equal(11, cartGen.next().value);
+        assert.equal(12, cartGen.next().value);
+        assert.equal(13, cartGen.next().value);
+        assert.equal(21, cartGen.next().value);
+        assert.equal(22, cartGen.next().value);
+        assert.equal(23, cartGen.next().value);
+        assert.equal(31, cartGen.next().value);
+        assert.equal(32, cartGen.next().value);
+        assert.equal(33, cartGen.next().value);
+        assert.equal(true, cartGen.next().done);
+
     });
 });
 
@@ -104,10 +150,10 @@ describe('lazyCartesianSorted(add, mergingSumPrice) ', () => {
             hotel: 1
         }, cartGen.next().value);
 
-        assert.deepEqual(25, cartGen.next().value.price);
-        assert.deepEqual(25, cartGen.next().value.price);
-        assert.deepEqual(27, cartGen.next().value.price);
-        assert.deepEqual(true, cartGen.next().done);
+        assert.equal(25, cartGen.next().value.price);
+        assert.equal(25, cartGen.next().value.price);
+        assert.equal(27, cartGen.next().value.price);
+        assert.equal(true, cartGen.next().done);
     });
 });
 
@@ -231,23 +277,90 @@ describe('combineLists(lists, spec)', function() {
     });
 });
 
-
 describe('combineListsScoreSorted(lists, specs, add, sum)', function() {
-    it('should make combinations from lists with addition', function () {
+    it('should make combinations from lists with addition [1, 2, 3] x [10, 20, 30]', function () {
         let combinationGenerator = combineListsScoreSorted([{
             sets: ['FT'],
             values: [1, 2, 3]
         }, {
             sets: ['FF'],
             values: [10, 20, 30]
-        }], ['FT', 'FF'], add, sum, (a, b) => a - b);
+        }], ['FT', 'FF'], add, sum, (a, b) => a - b < 0);
 
         assert.equal(11, combinationGenerator.next().value);
         assert.equal(12, combinationGenerator.next().value);
         assert.equal(13, combinationGenerator.next().value);
         assert.equal(21, combinationGenerator.next().value);
         assert.equal(22, combinationGenerator.next().value);
+        assert.equal(23, combinationGenerator.next().value);
+        assert.equal(31, combinationGenerator.next().value);
+        assert.equal(32, combinationGenerator.next().value);
+        assert.equal(33, combinationGenerator.next().value);
+        assert.equal(true, combinationGenerator.next().done);
+    });
+
+
+    it('should make combinations from lists with addition [1, 2, 3] x [10, 20, 30] + [12, 22, 32]', function () {
+        let combinationGenerator = combineListsScoreSorted([{
+            sets: ['FT'],
+            values: [1, 2, 3]
+        }, {
+            sets: ['FF'],
+            values: [10, 20, 30]
+        }, {
+            sets: ['FF', 'FT'],
+            values: [12, 22, 32]
+        }], ['FT', 'FF'], add, sum, (a, b) => a - b < 0);
+
+        assert.equal(11, combinationGenerator.next().value);
+        assert.equal(12, combinationGenerator.next().value);
+        assert.equal(12, combinationGenerator.next().value);
+        assert.equal(13, combinationGenerator.next().value);
+        assert.equal(21, combinationGenerator.next().value);
+        assert.equal(22, combinationGenerator.next().value);
+        assert.equal(22, combinationGenerator.next().value);
+        assert.equal(23, combinationGenerator.next().value);
+        assert.equal(31, combinationGenerator.next().value);
+        assert.equal(32, combinationGenerator.next().value);
+        assert.equal(32, combinationGenerator.next().value);
+        assert.equal(33, combinationGenerator.next().value);
+        assert.equal(true, combinationGenerator.next().done);
+    });
+
+
+    it('should make combinations from lists with addition [1, 2, 3] x [10, 20, 30] + [12, 22, 32]', function () {
+        let combinationGenerator = combineListsScoreSorted([{
+            sets: ['FT'],
+            values: [1]
+        }, {
+            sets: ['FT'],
+            values: [1, 2, 3]
+        }, {
+            sets: ['FF'],
+            values: [10, 20, 30]
+        }, {
+            sets: ['FF', 'FT'],
+            values: [12, 22, 32]
+        }], ['FT', 'FF'], add, sum, (a, b) => a - b < 0);
+
+        assert.equal(11, combinationGenerator.next().value);
+        assert.equal(11, combinationGenerator.next().value);
+        assert.equal(12, combinationGenerator.next().value);
+        assert.equal(12, combinationGenerator.next().value);
+        assert.equal(13, combinationGenerator.next().value);
+        assert.equal(21, combinationGenerator.next().value);
+        assert.equal(21, combinationGenerator.next().value);
+        assert.equal(22, combinationGenerator.next().value);
+        assert.equal(22, combinationGenerator.next().value);
+        assert.equal(23, combinationGenerator.next().value);
+        assert.equal(31, combinationGenerator.next().value);
+        assert.equal(31, combinationGenerator.next().value);
+        assert.equal(32, combinationGenerator.next().value);
+        assert.equal(32, combinationGenerator.next().value);
+        assert.equal(33, combinationGenerator.next().value);
+        assert.equal(true, combinationGenerator.next().done);
 
     });
 });
+
 

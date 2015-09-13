@@ -18,6 +18,46 @@ import head from 'ramda/src/head';
 import tail from 'ramda/src/tail';
 import length from 'ramda/src/length';
 
+export function minIndexBy(compare, list) {
+    let min = null;
+
+    for (let i = 0; i < list.length; i++) {
+        let item = list[i];
+
+        if (min === null || compare(item, list[min])) {
+            min = i;
+        }
+    }
+
+    return min;
+}
+
+export function pushQueueByItem(lengths, queue, item) {
+    let i = 0;
+    // Fill by 1 if present 0
+    while (i < item.length && item[i] == 0) {
+
+        if (lengths[i] > 1) {
+            let newItem = [...item];
+            newItem[i] = 1;
+            queue.push(newItem);
+        }
+
+        i++;
+    }
+
+    // The next value +1
+    if (i < item.length && lengths[i] > item[i] + 1) {
+        let newItem = [...item];
+
+        newItem[i]++;
+        queue.push(newItem);
+    }
+
+    return queue;
+}
+
+
 export function cartesian(cartConcat) {
     return function() {
         let lists = arguments;
@@ -56,31 +96,19 @@ export function lazyCartesianSorted(cartesianConcat, score) {
 
         const getMinElementQueueIndex = function getMinElementQueueIndex(score, lists, queue) {
             let min = null;
+            let minS = null;
 
-            for (let i in queue) {
+            for (let i = 0; i < queue.length; i++) {
                 let item = queue[i];
                 let s = scoreQueueItem(score, lists, item);
 
-                if (s < queue[min] || min === null) {
+                if (min === null || s < minS) {
                     min = i;
+                    minS = s;
                 }
             }
 
             return min;
-        };
-
-        const pushQueueByItem = function(lengths, queue, item) {
-            for (let i = 0; i < item.length && (item[i] == 0 || item[i - 1] == 0); i++) {
-                if (lengths[i] <= item[i] + 1) continue;
-
-                let newItem = [...item];
-
-                newItem[i]++;
-
-                queue.push(newItem);
-            }
-
-            return queue;
         };
 
         const lengthLists = map(length, lists);
@@ -96,7 +124,6 @@ export function lazyCartesianSorted(cartesianConcat, score) {
             queue.splice(minIndex, 1);
 
             queue = pushQueueByItem(lengthLists, queue, item);
-
         }
     }
 }
@@ -147,22 +174,8 @@ export function combineLists(lists, specs, valuesMerge) {
 
 export function *combineListsScoreSorted(lists, specs, valuesMerge, sortScore, compare) {
 
-    const minIndexBy = function(compare, list) {
-        let min = null;
-
-        for (let i in list) {
-            let item = list[i];
-
-            if (compare(item, list[min]) < 0 || min === null) {
-                min = i;
-            }
-        }
-
-        return min;
-    };
-
     const propValue = prop('value');
-    //const propDone = prop('done');
+    const propDone = prop('done');
 
     let result = [];
     let cartesianValuesMerge = lazyCartesianSorted(valuesMerge, sortScore);
@@ -179,12 +192,11 @@ export function *combineListsScoreSorted(lists, specs, valuesMerge, sortScore, c
         vals.push(cartGen.next());
     }
 
-    while (1) {
-        let currentValues = filter(x => !x.done, map(propValue, vals));
+    while (filter(x => !propDone(x), vals).length > 0) {
+        let mInd = minIndexBy((a, b) => {
+            return propDone(b) === true || (propDone(a) !== true && compare(propValue(a), propValue(b)));
+        }, vals);
 
-        if (currentValues.length == 0) break;
-
-        let mInd = minIndexBy(compare, currentValues);
 
         yield propValue(vals[mInd]);
 
